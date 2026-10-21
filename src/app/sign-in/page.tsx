@@ -8,7 +8,7 @@ async function AccountForm({ searchParams }: PageProps<"/sign-in">) {
   const params = await searchParams;
   const returnTo = safeReturnPath(params.next);
   if (await getCurrentUser()) redirect(returnTo);
-  return <AuthForm mode="sign-in" returnTo={returnTo} />;
+  return <>{params.reset === "1" && <p role="status">Password reset. Sign in with your new password.</p>}<AuthForm mode="sign-in" returnTo={returnTo} /></>;
 }
 
 export default function Page(props: PageProps<"/sign-in">) {

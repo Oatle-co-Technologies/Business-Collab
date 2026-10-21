@@ -10,7 +10,7 @@ New business profiles belong to the signed-in user; ownership never comes from s
 
 Existing prototype profiles and media are retained with a null owner. They are not automatically assigned to the first registrant or an account with a matching email. They remain hidden and cannot be claimed through the UI. Linking one requires explicit founder-authorised migration after the intended account exists. An account can currently manage multiple profiles, preserving the existing Add business flow.
 
-Email verification and password recovery need an email-delivery service and are not connected yet. Social sign-in, account deletion, ownership transfer and multiple managers are not implemented. Identity verification is prepared but disabled, as detailed below. An account does not imply a verified identity. Before launch, connect email delivery and verify the production rate-limit configuration.
+Email verification and password recovery are implemented using the existing Purelymail SMTP settings. Delivery requires `AUTH_EMAIL_ENABLED=true` and a verified HTTPS app origin; the flag defaults off. See [account recovery and identity rollout](docs/account-recovery-and-identity.md). Existing accounts retain sign-in access; email verification does not grant identity verification. Social sign-in, account deletion, ownership transfer and multiple managers are not implemented. Identity verification is prepared but disabled, as detailed below. An account does not imply a verified identity. Before launch, connect email delivery and verify the production rate-limit configuration.
 
 ## Business profiles and discovery
 

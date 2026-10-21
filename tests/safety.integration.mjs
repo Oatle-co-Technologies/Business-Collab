@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { requireLocalTestDatabase } from './local-test-database.mjs';
 import { randomBytes,createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
@@ -8,6 +9,7 @@ import { PrismaClient } from '../src/generated/prisma/client.ts';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { canonicalJson } from '../src/lib/didit-rules.ts';
 import { sweepSafety } from '../src/lib/safety-sweep.ts';
+requireLocalTestDatabase(process.env.DATABASE_URL);
 const db=new PrismaClient({adapter:new PrismaPg({connectionString:process.env.DATABASE_URL})});
 const {encodeReply}=createRequire(import.meta.url)('next/dist/compiled/react-server-dom-webpack/client.node.js');
 const suffix=randomBytes(5).toString('hex'),password=randomBytes(24).toString('base64url');

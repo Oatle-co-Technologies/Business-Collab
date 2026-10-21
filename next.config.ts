@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: { "/*": ["./node_modules/@ffprobe-installer/**/*"] },
   async headers() {
     return [
+      { source: "/reset-password", headers: [{ key: "Referrer-Policy", value: "no-referrer" }, { key: "Cache-Control", value: "private, no-store" }] },
+      { source: "/api/auth/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }, { key: "Cache-Control", value: "private, no-store" }] },
       { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }, { key: "Service-Worker-Allowed", value: "/" }, { key: "X-Content-Type-Options", value: "nosniff" }] },
       { source: "/offline.html", headers: [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }, { key: "X-Content-Type-Options", value: "nosniff" }] },
     ];

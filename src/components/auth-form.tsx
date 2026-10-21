@@ -41,6 +41,7 @@ export function AuthForm({ mode, returnTo }: { mode: "sign-in" | "sign-up"; retu
     </div>
     {signingUp && <div><label htmlFor="confirmPassword">Confirm password</label><input id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" required minLength={12} maxLength={128} /></div>}
     <button type="submit" disabled={pending}>{pending ? "Please wait…" : signingUp ? "Create account" : "Sign in"}</button>
+    {!signingUp && <p><Link href="/forgot-password">Forgot your password?</Link></p>}
     <p className="text-sm">{signingUp ? "Already have an account? " : "New to Business Collab? "}
       <Link href={`${signingUp ? "/sign-in" : "/sign-up"}?${new URLSearchParams({ next: returnTo })}`}>{signingUp ? "Sign in" : "Create an account"}</Link>
     </p>

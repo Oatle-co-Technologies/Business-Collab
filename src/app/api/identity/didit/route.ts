@@ -13,7 +13,12 @@ export async function POST(request: Request) {
  try {
   await getDb().$transaction(async tx => {
    const check = await tx.identityCheck.findUnique({ where: { sessionId: String(body.session_id) } });
-   if (!check || check.userId !== body.vendor_data || check.provider !== "DIDIT") return;
+   if (!check) {
+    const pending = await tx.identityCheck.findUnique({ where: { userId: String(body.vendor_data) } });
+    if (pending?.provider === "DIDIT" && pending.sessionId?.startsWith("starting:")) throw new Error("Session registration pending");
+    return;
+   }
+   if (check.userId !== body.vendor_data || check.provider !== "DIDIT") return;
    if (await tx.identityEvent.findUnique({ where: { id: String(body.event_id) } })) return;
    const occurredAt = new Date(Number(body.created_at) * 1000);
    await tx.identityEvent.create({ data: { id: String(body.event_id), userId: check.userId, sessionId: check.sessionId, status: diditDecision(body), occurredAt } });

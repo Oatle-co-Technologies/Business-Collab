@@ -6,8 +6,8 @@ export function safetyEmailMessage(origin: string) {
 }
 export const emailRetryDelay = (attempt: number) => Math.min(3600000,60000*2**Math.min(Math.max(attempt-1,0),6));
 export async function deliverSafetyEmails(db: PrismaClient, founder: string, send: (to: string, id: string) => Promise<void>, now=new Date()) {
- if(!founder)return {sent:0,failed:0};
- const user=await db.user.findUnique({where:{id:founder},select:{email:true}});if(!user)return {sent:0,failed:0};
+ if(!founder)return {sent:0,failed:1};
+ const user=await db.user.findUnique({where:{id:founder},select:{email:true}});if(!user)return {sent:0,failed:1};
  const items=await db.safetyEmail.findMany({where:{sentAt:null,nextAttemptAt:{lte:now},OR:[{leaseUntil:null},{leaseUntil:{lte:now}}],safetyCase:{acknowledgedAt:null,resolvedAt:null}},take:3,orderBy:{createdAt:"asc"}});
  let sent=0,failed=0;
  for(const item of items){
