@@ -1,0 +1,14 @@
+import Link from "next/link";
+import { Suspense } from "react";
+import { requireUser } from "@/lib/current-user";
+import { getDb } from "@/lib/db";
+import { SafetyForm } from "@/components/safety-forms";
+import { startIdentity } from "./actions";
+import { identityEligible } from "@/lib/safety-rules";
+async function Status() {
+ const user = await requireUser("/identity"); const account = await getDb().user.findUnique({ where: { id: user.id }, select: { safetySuspended: true, identityCheck: true } });
+ const checked = identityEligible(account?.identityCheck ?? null, account?.safetySuspended ?? true);
+ const enabled = process.env.DIDIT_ENABLED === "true" && !!process.env.DIDIT_API_KEY && !!process.env.DIDIT_WORKFLOW_ID && !!process.env.DIDIT_WEBHOOK_SECRET && !!process.env.DIDIT_APPLICATION_ID;
+ return <div className="space-y-5"><h1>Safety & identity</h1><p>Informal businesses are welcome. Business-registration papers are not required. We check the person behind the business.</p><section className="panel"><h2>Your identity status</h2><p className="mt-3">{account?.safetySuspended ? "Account restricted" : checked ? "Identity checked" : account?.identityCheck?.status === "VERIFIED" ? "Identity check expired" : (account?.identityCheck?.status ?? "NOT_STARTED").replaceAll("_", " ")}</p><p className="mt-3">Identity checks are required before publishing, organising, applying, accepting invitations, messaging or attending activities. You can still prepare drafts, report concerns and check out of an activity already started.</p><p className="mt-3">An identity check is not a guarantee of safety. The account holder must be the person attending; do not send an unverified substitute.</p></section>{!enabled ? <p className="panel">Live identity checks are not connected yet. Collaboration participation is restricted until verification is available. Do not upload identity documents into chat or profile media.</p> : <SafetyForm action={startIdentity} label="Continue to Didit identity check"><p>Didit will ask for your identity document and a live selfie to compare your face. Documents and biometric captures are handled by Didit. Business Collab stores your verification reference, result and relevant dates, not the document or selfie. Your status can change following provider review.</p><p><a href="https://didit.me/privacy-policy/" target="_blank" rel="noopener noreferrer">Read Didit’s privacy information</a></p><label className="flex gap-2"><input type="checkbox" name="consent" value="yes" required className="w-auto" />I understand and consent to continuing to Didit for this identity check.</label></SafetyForm>}<Link href="/safety">Safety reports and follow-up</Link></div>;
+}
+export default function Page() { return <main className="page max-w-3xl"><Suspense fallback={<p>Loading safety status…</p>}><Status /></Suspense></main>; }

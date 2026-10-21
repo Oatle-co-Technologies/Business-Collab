@@ -1,0 +1,435 @@
+generator client {
+  provider = "prisma-client"
+  output = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Business {
+  id          String   @id @default(cuid())
+  ownerId     String?
+  owner       User? @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  name        String
+  description String
+  discoveryArea String @default("")
+  industry    String @default("")
+  location    String
+  categories  String[]
+  email       String
+  phone       String
+  website     String?
+  portfolio   String?
+  published   Boolean  @default(false)
+  organizedCollaborations Collaboration[] @relation("Organizer")
+  collaborationEntries CollaborationParticipant[]
+  media       BusinessMedia[]
+  reviewsWritten Review[] @relation("Reviewer")
+  reviewsReceived Review[] @relation("Reviewed")
+  safetyCases SafetyCase[]
+  sentMessages ChatMessage[]
+  logoPath String?
+  logo        Bytes?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([ownerId, published])
+}
+
+enum MediaKind {
+  INTRODUCTION
+  SHOWCASE
+  PHOTO
+}
+
+model BusinessMedia {
+  id          String    @id @default(cuid())
+  businessId  String
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  kind        MediaKind
+  position    Int       @default(0)
+  contentType String
+  caption     String?
+  data        Bytes?
+  storagePath String?
+  byteSize Int?
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([businessId, kind, position])
+  @@index([updatedAt, id])
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  mediaUploads MediaUpload[]
+  identityEvents IdentityEvent[]
+  identityCheck IdentityCheck?
+  safetySuspended Boolean @default(false)
+  activityEvents ActivityEvent[]
+  safetyAttendances ActivityAttendee[]
+  reportedSafetyCases SafetyCase[] @relation("SafetyReporter")
+  assignedSafetyCases SafetyCase[] @relation("SafetyAssignee")
+  safetyAudits SafetyAudit[]
+  notifications Notification[]
+  chatReads ChatRead[]
+  blocks ChatBlock[] @relation("Blocker")
+  blockedBy ChatBlock[] @relation("Blocked")
+  chatReports ChatReport[]
+  sessions      Session[]
+  accounts      Account[]
+  businesses    Business[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+enum CollaborationVisibility {
+  OPEN
+  INVITE_ONLY
+}
+
+enum CollaborationStatus {
+  OPEN
+  CLOSED
+  COMPLETED
+}
+
+enum ParticipationSource {
+  INVITATION
+  APPLICATION
+}
+
+enum ParticipationStatus {
+  PENDING
+  INTERESTED
+  SELECTED
+  DECLINED
+  NOT_SELECTED
+  WITHDRAWN
+}
+
+model Collaboration {
+  id             String @id @default(cuid())
+  organizerId    String
+  organizer      Business @relation("Organizer", fields: [organizerId], references: [id], onDelete: Restrict)
+  title          String
+  description    String
+  servicesNeeded String[]
+  location       String
+  discoveryArea  String
+  visibility     CollaborationVisibility @default(OPEN)
+  status         CollaborationStatus @default(OPEN)
+  activities Activity[]
+  safetyCases SafetyCase[]
+  completedAt DateTime?
+  reviews Review[]
+  chat Conversation?
+  participants   CollaborationParticipant[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizerId, status])
+  @@index([visibility, status, createdAt])
+}
+
+model CollaborationParticipant {
+  chat Conversation?
+  id              String @id @default(cuid())
+  collaborationId String
+  collaboration   Collaboration @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+  businessId      String
+  business        Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  source          ParticipationSource
+  status          ParticipationStatus
+  invitationNote  String?
+  responseNote    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([collaborationId, businessId])
+  @@index([businessId, status])
+}
+
+model Conversation {
+  id String @id @default(cuid())
+  participationId String? @unique
+  participation CollaborationParticipant? @relation(fields: [participationId], references: [id], onDelete: Cascade)
+  directKey String? @unique
+  businessIds String[]
+  collaborationId String? @unique
+  collaboration Collaboration? @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+  reads ChatRead[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ChatMessage {
+  id String @id @default(cuid())
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId String
+  sender Business @relation(fields: [senderId], references: [id], onDelete: Restrict)
+  body String
+  createdAt DateTime @default(now())
+  reports ChatReport[]
+  @@index([conversationId, createdAt])
+}
+
+model ChatRead {
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt DateTime @default(now())
+  @@id([conversationId, userId])
+}
+
+model Notification {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title String
+  href String
+  readAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([userId, readAt, createdAt])
+}
+
+model ChatBlock {
+  blockerId String
+  blocker User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  @@id([blockerId, blockedId])
+}
+
+model ChatReport {
+  id String @id @default(cuid())
+  messageId String
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  reporterId String
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reason String
+  createdAt DateTime @default(now())
+  @@unique([messageId, reporterId])
+}
+
+model Review {
+  id String @id @default(cuid())
+  collaborationId String
+  collaboration Collaboration @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+  authorId String
+  author Business @relation("Reviewer", fields: [authorId], references: [id], onDelete: Restrict)
+  targetId String
+  target Business @relation("Reviewed", fields: [targetId], references: [id], onDelete: Restrict)
+  rating Int
+  body String
+  createdAt DateTime @default(now())
+  @@unique([collaborationId, authorId, targetId])
+  @@index([targetId, createdAt])
+}
+
+enum IdentityStatus {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  DECLINED
+  REVIEW
+  EXPIRED
+}
+model IdentityCheck {
+  userId String @id
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider String
+  sessionId String? @unique
+  status IdentityStatus @default(NOT_STARTED)
+  lastEventAt DateTime?
+  checkedAt DateTime?
+  expiresAt DateTime?
+  updatedAt DateTime @updatedAt
+}
+model Activity {
+  id String @id @default(cuid())
+  collaborationId String
+  collaboration Collaboration @relation(fields: [collaborationId], references: [id], onDelete: Restrict)
+  currentVersion Int @default(1)
+  cancelledAt DateTime?
+  versions ActivityVersion[]
+  createdAt DateTime @default(now())
+}
+model ActivityVersion {
+  id String @id @default(cuid())
+  activityId String
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  version Int
+  title String
+  startsAt DateTime
+  endsAt DateTime
+  venue String
+  changeReason String?
+  createdAt DateTime @default(now())
+  events ActivityEvent[]
+  attendees ActivityAttendee[]
+  @@unique([activityId, version])
+}
+model ActivityAttendee {
+  id String @id @default(cuid())
+  versionId String
+  version ActivityVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  acknowledgedAt DateTime?
+  declinedAt DateTime?
+  checkedInAt DateTime?
+  checkedOutAt DateTime?
+  @@unique([versionId, userId])
+  @@index([checkedInAt, checkedOutAt])
+}
+model SafetyCase {
+  targetBusinessId String?
+  targetBusiness Business? @relation(fields: [targetBusinessId], references: [id], onDelete: Restrict)
+  id String @id @default(cuid())
+  eventKey String? @unique
+  collaborationId String?
+  collaboration Collaboration? @relation(fields: [collaborationId], references: [id], onDelete: Restrict)
+  reporterId String?
+  reporter User? @relation("SafetyReporter", fields: [reporterId], references: [id], onDelete: Restrict)
+  assigneeId String?
+  assignee User? @relation("SafetyAssignee", fields: [assigneeId], references: [id], onDelete: Restrict)
+  priority String
+  kind String
+  detail String
+  status String @default("NEW")
+  founderNotifiedAt DateTime?
+  acknowledgedAt DateTime?
+  resolvedAt DateTime?
+  createdAt DateTime @default(now())
+  email SafetyEmail?
+  audits SafetyAudit[]
+  @@index([status, createdAt])
+}
+model SafetyAudit {
+  id String @id @default(cuid())
+  caseId String
+  safetyCase SafetyCase @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  actorId String?
+  actor User? @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  action String
+  note String
+  createdAt DateTime @default(now())
+  @@index([caseId, createdAt])
+}
+
+model IdentityEvent {
+  sessionId String?
+  status String?
+  occurredAt DateTime?
+  id String @id
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  processedAt DateTime @default(now())
+}
+
+model ActivityEvent {
+  id String @id @default(cuid())
+  versionId String
+  version ActivityVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  actorId String
+  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  action String
+  createdAt DateTime @default(now())
+  @@index([versionId, createdAt])
+}
+
+model MediaUpload {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessId String?
+  kind String
+  rawPath String @unique
+  storagePath String?
+  contentType String?
+  byteSize Int?
+  state String @default("PENDING")
+  tokenIssuedAt DateTime?
+  expiresAt DateTime
+  consumedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+
+model RateLimit {
+  id String @id @default(cuid())
+  key String @unique
+  count Int
+  lastRequest BigInt
+  @@index([lastRequest])
+}
+
+model SafetyEmail {
+  id String @id @default(cuid())
+  caseId String @unique
+  safetyCase SafetyCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  founderId String
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  leaseId String?
+  leaseUntil DateTime?
+  sentAt DateTime?
+  lastFailureAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([sentAt, nextAttemptAt])
+}

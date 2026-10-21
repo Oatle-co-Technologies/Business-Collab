@@ -1,0 +1,13 @@
+{
+  "job": {
+    "title": "Business Collab safety checks",
+    "url": "https://business-collab.vercel.app/api/cron/maintenance",
+    "enabled": false,
+    "saveResponses": false,
+    "requestMethod": 0,
+    "redirectSuccess": false,
+    "notification": { "onFailure": true, "onFailureCount": 1, "onSuccess": true, "onDisable": true, "mode": 2, "selectedChannels": [0] },
+    "extendedData": { "headers": { "Authorization": "Bearer REPLACE_PRIVATELY_WITH_PRODUCTION_CRON_SECRET" } },
+    "schedule": { "timezone": "Africa/Johannesburg", "expiresAt": 0, "hours": [-1], "mdays": [-1], "minutes": [0,5,10,15,20,25,30,35,40,45,50,55], "months": [-1], "wdays": [-1] }
+  }
+}

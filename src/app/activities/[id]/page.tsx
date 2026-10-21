@@ -1,0 +1,23 @@
+import Link from "next/link";
+import { Suspense } from "react";
+import { notFound } from "next/navigation";
+import { requireUser } from "@/lib/current-user";
+import { getDb } from "@/lib/db";
+import { activityAccess } from "@/lib/safety-access";
+import { CHECKOUT_GRACE_MS } from "@/lib/safety-rules";
+import { ActivityForm, AttendanceForm, CancelActivity, SafetyReportForm } from "@/components/safety-forms";
+const display = (date: Date) => date.toLocaleString("en-ZA", { timeZone: "Africa/Johannesburg" });
+const inputDate = (date: Date) => new Date(date.getTime() + 2 * 3600_000).toISOString().slice(0, 16);
+async function Details({ params }: PageProps<"/activities/[id]">) {
+ const { id } = await params; const user = await requireUser(`/activities/${id}`); const access = await activityAccess(getDb(), id, user.id); if (!access) notFound();
+ const { activity, current, organizer } = access; const me = current.attendees.find(a => a.userId === user.id); const now = new Date();
+ const choices = me?.checkedOutAt ? [] : me?.checkedInAt ? [{ value: "check-out", label: "Check out — I have finished" }] : [{ value: "acknowledge", label: "Confirm this plan" }, { value: "decline", label: "Decline this activity" }, ...(me?.acknowledgedAt && !me.declinedAt ? [{ value: "check-in", label: "Check in — I am starting" }] : [])];
+ return <div className="space-y-6"><Link href={`/collaborations/${activity.collaborationId}`}>Back to collaboration</Link><section className="panel"><h1>{current.title}</h1><p className="mt-3">Plan version {current.version}{activity.cancelledAt ? " · Cancelled" : ""}</p><p className="mt-3">{display(current.startsAt)} – {display(current.endsAt)} (SAST)</p><h2 className="mt-5">Private meeting details</h2><p className="mt-2 whitespace-pre-wrap break-words">{current.venue}</p>{current.changeReason && <p className="mt-3">Change reason: {current.changeReason}</p>}</section>
+ <section className="panel space-y-4"><h2>Your attendance</h2><p>Check-in and check-out are personal acknowledgements, not proof of your location or safety. A check-out overdue by 30 minutes creates a private case for the founder. Alerts are in-app only; no external emergency service or contact is automatically called.</p>{me ? <><p>{me.checkedOutAt ? `Checked out: ${display(me.checkedOutAt)}` : me.checkedInAt ? `Checked in: ${display(me.checkedInAt)}` : me.declinedAt ? "You declined this plan. This does not automatically change your rating." : me.acknowledgedAt ? "You confirmed the current plan." : "Please read and confirm the current plan."}</p>{!activity.cancelledAt && <AttendanceForm activityId={id} versionId={current.id} choices={choices} />}</> : <p>You are not an attendee on the current version.</p>}</section>
+ <section className="panel"><h2>Attendance on this plan</h2><ul className="mt-3 space-y-2">{current.attendees.map(a => <li key={a.id}>{a.user.name}: {a.checkedOutAt ? "Checked out" : a.checkedInAt ? now.getTime() > current.endsAt.getTime() + CHECKOUT_GRACE_MS ? "Check-out overdue" : "Checked in" : a.declinedAt ? "Declined" : a.acknowledgedAt ? "Plan confirmed" : "Awaiting confirmation"}</li>)}</ul></section>
+ {organizer && !activity.cancelledAt && activity.collaboration.status !== "COMPLETED" && !current.attendees.some(a => a.checkedInAt) && <section className="panel space-y-5"><h2>Change this plan</h2><ActivityForm projectId={activity.collaborationId} activityId={id} defaults={{ title: current.title, start: inputDate(current.startsAt), end: inputDate(current.endsAt), venue: current.venue }} /><CancelActivity id={id} /></section>}
+ <details className="panel"><summary>Attendance history for this plan</summary><ul className="mt-3 space-y-2">{current.events.map(e => <li key={e.id}>{e.actor.name} · {e.action} · {display(e.createdAt)}</li>)}</ul></details>
+ <details className="panel"><summary>Previous plans and attendance</summary>{activity.versions.filter(v => v.version !== current.version && (organizer || v.attendees.some(a => a.userId === user.id))).map(v => <section key={v.id} className="mt-4"><h2>Version {v.version}</h2><p>{display(v.startsAt)} – {display(v.endsAt)} (SAST)</p><p className="whitespace-pre-wrap break-words">{v.venue}</p><ul>{v.attendees.map(a => <li key={a.id}>{a.user.name}: {a.checkedOutAt ? "Checked out" : a.checkedInAt ? "Checked in" : a.declinedAt ? "Declined" : a.acknowledgedAt ? "Confirmed" : "Unconfirmed"}</li>)}</ul></section>)}</details>
+ <section className="panel"><h2 className="mb-4">Report a safety concern</h2><SafetyReportForm activityId={id} /></section></div>;
+}
+export default function Page(props: PageProps<"/activities/[id]">) { return <main className="page max-w-3xl"><Suspense fallback={<p>Loading private activity…</p>}><Details {...props} /></Suspense></main>; }

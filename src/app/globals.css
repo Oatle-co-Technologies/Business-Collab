@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+body { margin: 0; background: #fafafa; color: #171717; font-family: Arial, Helvetica, sans-serif; }
+@layer components {
+  .page { @apply mx-auto w-full max-w-5xl px-5 py-8 sm:px-8 sm:py-12; }
+  .panel { @apply min-w-0 rounded-lg border border-neutral-200 bg-white p-5; }
+  h1 { @apply text-2xl font-semibold sm:text-3xl; }
+  h2 { @apply text-lg font-semibold; }
+  a { @apply underline underline-offset-4; }
+  label, dt { @apply mb-1 block text-sm font-medium; }
+  input, textarea { @apply block w-full rounded-md border border-neutral-400 bg-white px-3 py-2; }
+  .button, button { @apply inline-flex items-center justify-center rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white no-underline disabled:cursor-wait disabled:opacity-60; }
+  .error { @apply mt-2 text-sm text-red-700; }
+}
+:focus-visible { outline: 2px solid #171717; outline-offset: 3px; }
+
+body { padding-bottom: env(safe-area-inset-bottom); }
+header { padding-top: env(safe-area-inset-top); }
+input, select, textarea { font-size: 16px; }
